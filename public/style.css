@@ -1,0 +1,25 @@
+body {
+  font-family: Arial;
+  padding: 40px;
+  background: #f2f2f2;
+}
+
+h1 {
+  color: #333;
+}
+
+#accounts {
+  margin-bottom: 30px;
+}
+
+form {
+  background: white;
+  padding: 20px;
+  border-radius: 10px;
+  width: 300px;
+}
+
+button {
+  margin-top: 10px;
+  padding: 8px;
+}
