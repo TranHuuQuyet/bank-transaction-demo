@@ -61,7 +61,7 @@ async function loadTransactions() {
         <td>${t.id}</td>
         <td>${t.sender}</td>
         <td>${t.receiver}</td>
-        <td>${t.amount}</td>
+        <td>$${t.amount}</td>
         <td>${t.created_at}</td>
       </tr>
     `;
