@@ -26,7 +26,23 @@
     </form>
 
     <p id="message"></p>
+    <h2>Transaction History</h2>
 
+    <button onclick="loadTransactions()">Load History</button>
+
+    <table border="1" id="historyTable">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Sender</th>
+          <th>Receiver</th>
+          <th>Amount</th>
+          <th>Time</th>
+        </tr>
+      </thead>
+
+      <tbody></tbody>
+    </table>
     <script src="script.js"></script>
   </body>
 </html>
