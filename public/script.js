@@ -69,4 +69,26 @@ async function loadTransactions() {
     table.innerHTML += row;
   });
 }
+// async function simulateError() {
+//   const from = document.getElementById("from").value;
+//   const to = document.getElementById("to").value;
+//   const amount = document.getElementById("amount").value;
+
+//   const res = await fetch("/transfer-error", {
+//     method: "POST",
+//     headers: {
+//       "Content-Type": "application/json",
+//     },
+//     body: JSON.stringify({
+//       from,
+//       to,
+//       amount,
+//     }),
+//   });
+
+//   const data = await res.json();
+
+//   alert(data.message);
+// }
+
 loadTransactions();
