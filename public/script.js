@@ -47,3 +47,26 @@ document
   });
 
 loadAccounts();
+async function loadTransactions() {
+  const res = await fetch("/transactions");
+  const data = await res.json();
+
+  const table = document.querySelector("#historyTable tbody");
+
+  table.innerHTML = "";
+
+  data.forEach((t) => {
+    const row = `
+      <tr>
+        <td>${t.id}</td>
+        <td>${t.sender}</td>
+        <td>${t.receiver}</td>
+        <td>${t.amount}</td>
+        <td>${t.created_at}</td>
+      </tr>
+    `;
+
+    table.innerHTML += row;
+  });
+}
+loadTransactions();
