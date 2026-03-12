@@ -14,9 +14,10 @@ const db = mysql.createPool({
   database: "bank_demo",
 });
 
-// lấy danh sách account
+// lấy danh sách tài khoản
 app.get("/accounts", async (req, res) => {
   const [rows] = await db.query("SELECT * FROM accounts");
+
   res.json(rows);
 });
 
@@ -38,9 +39,24 @@ app.get("/transactions", async (req, res) => {
   res.json(rows);
 });
 
-// transfer money với transaction
+// transfer tiền
 app.post("/transfer", async (req, res) => {
   const { from, to, amount } = req.body;
+
+  const money = Number(amount);
+
+  // kiểm tra dữ liệu
+  if (!Number.isFinite(money) || money <= 0) {
+    return res.status(400).json({
+      error: "Amount must be a positive number",
+    });
+  }
+
+  if (from === to) {
+    return res.status(400).json({
+      error: "Cannot transfer to the same account",
+    });
+  }
 
   const connection = await db.getConnection();
 
@@ -52,24 +68,27 @@ app.post("/transfer", async (req, res) => {
       [from],
     );
 
-    if (sender[0].balance < amount) {
+    if (sender.length === 0) {
+      throw new Error("Sender account not found");
+    }
+
+    if (sender[0].balance < money) {
       throw new Error("Not enough money");
     }
 
     await connection.query(
       "UPDATE accounts SET balance = balance - ? WHERE id=?",
-      [amount, from],
+      [money, from],
     );
 
     await connection.query(
       "UPDATE accounts SET balance = balance + ? WHERE id=?",
-      [amount, to],
+      [money, to],
     );
 
-    // lưu lịch sử giao dịch
     await connection.query(
       "INSERT INTO transactions (from_account,to_account,amount) VALUES (?,?,?)",
-      [from, to, amount],
+      [from, to, money],
     );
 
     await connection.commit();
@@ -77,7 +96,44 @@ app.post("/transfer", async (req, res) => {
     res.json({ message: "Transfer success" });
   } catch (err) {
     await connection.rollback();
-    res.status(500).json({ error: err.message });
+
+    res.status(500).json({
+      error: err.message,
+    });
+  }
+
+  connection.release();
+});
+
+// simulate error để demo rollback
+app.post("/transfer-error", async (req, res) => {
+  const { from, to, amount } = req.body;
+
+  const connection = await db.getConnection();
+
+  try {
+    await connection.beginTransaction();
+
+    await connection.query(
+      "UPDATE accounts SET balance = balance - ? WHERE id=?",
+      [amount, from],
+    );
+
+    // giả lập lỗi hệ thống
+    throw new Error("System crash");
+
+    await connection.query(
+      "UPDATE accounts SET balance = balance + ? WHERE id=?",
+      [amount, to],
+    );
+
+    await connection.commit();
+  } catch (err) {
+    await connection.rollback();
+
+    res.json({
+      message: "Transaction failed → rollback executed",
+    });
   }
 
   connection.release();

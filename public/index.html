@@ -6,13 +6,6 @@
   </head>
 
   <body>
-    <style>
-      .money {
-        position: absolute;
-        font-size: 30px;
-        transition: all 1s ease;
-      }
-    </style>
     <h1>Bank Transfer Demo</h1>
 
     <div id="accounts"></div>
@@ -27,14 +20,17 @@
       <select id="to"></select>
 
       Amount:
-      <input type="number" id="amount" />
+      <input type="number" id="amount" min="1" />
 
       <button type="submit">Transfer</button>
+
+      <button type="button" onclick="simulateError()">
+        Simulate Error (Rollback)
+      </button>
     </form>
 
     <p id="message"></p>
 
-    <button onclick="simulateError()">Simulate Error (Rollback)</button>
     <h2>Transaction History</h2>
 
     <button onclick="loadTransactions()">Load History</button>
@@ -49,9 +45,9 @@
           <th>Time</th>
         </tr>
       </thead>
-
       <tbody></tbody>
     </table>
+
     <script src="script.js"></script>
   </body>
 </html>
