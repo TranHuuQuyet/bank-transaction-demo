@@ -8,9 +8,11 @@ app.use(cors());
 app.use(express.static("public"));
 
 const db = mysql.createPool({
-  host: "localhost",
+  ///sửa localhost thành mysql
+  host: "mysql",
   user: "root",
-  password: "",
+  // sửa root thành password
+  password: "root",
   database: "bank_demo",
 });
 
