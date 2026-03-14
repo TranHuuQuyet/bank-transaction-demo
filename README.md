@@ -1,68 +1,80 @@
-🏦 Demo Chuyển Tiền Ngân Hàng
+# 🏦 Bank Transfer Demo
 
-Đây là một ứng dụng web đơn giản mô phỏng hệ thống chuyển tiền giữa các tài khoản ngân hàng.
-Người dùng có thể chọn tài khoản và thực hiện chuyển tiền giữa các tài khoản.
+Một ứng dụng web đơn giản mô phỏng **hệ thống chuyển tiền giữa các tài khoản ngân hàng**.
 
-Dự án này được xây dựng nhằm mục đích học tập về Transaction và Concurrency Control trong Database.
+Dự án được xây dựng nhằm mục đích **minh họa cách hoạt động của Database Transaction và ACID trong DBMS**.
 
-📌 Chức năng
-Hiển thị danh sách các tài khoản ngân hàng
-Chọn tài khoản gửi tiền
-Chọn tài khoản nhận tiền
-Thực hiện chuyển tiền giữa các tài khoản
-Cập nhật số dư trong cơ sở dữ liệu
-Minh họa cách hoạt động của database transaction
+---
 
-*🛠 Công nghệ sử dụng*
-Frontend
-HTML
-CSS
-JavaScript
-Backend
-Node.js
-Cơ sở dữ liệu
-MySQL
-Container hóa
-Docker
-Docker Compose
+## 📌 Chức năng
 
+- Hiển thị danh sách tài khoản
+- Chọn tài khoản gửi tiền
+- Chọn tài khoản nhận tiền
+- Nhập số tiền cần chuyển
+- Thực hiện giao dịch chuyển tiền
+- Cập nhật số dư trong database
 
-⚙️ Cách chạy dự án
-1️⃣ Clone repository
-git clone https://github.com/yourusername/bank-transfer-demo.git
+---
+
+## 🛠 Công nghệ sử dụng
+
+### Frontend
+- HTML
+- CSS
+- JavaScript
+
+### Backend
+- Node.js
+- Express.js
+
+### Database
+- MySQL
+
+### Container
+- Docker
+- Docker Compose
+
+---
+
+## 📂 Cấu trúc dự án
+bank-transaction/
+│
+├── public/
+│ ├── index.html
+│ ├── style.css
+│ ├── script.js
+│ └── ic.png
+│
+├── server.js
+├── db.sql
+├── init.sql
+│
+├── Dockerfile
+├── docker-compose.yml
+│
+├── package.json
+└── README.md
+---
+
+## ⚙️ Cách chạy project
+
+### 1️⃣ Clone project
+git clone https://github.com/TranHuuQuyet/bank-transaction-demo
+
 cd bank-transfer-demo
-2️⃣ Khởi động hệ thống bằng Docker
+
+### 2️⃣ Chạy Docker
 docker-compose up --build
 
-Lệnh này sẽ khởi động:
+Hệ thống sẽ khởi động:
 
-Server Node.js
+- Node.js server
+- MySQL database
 
-Database MySQL
+---
 
-3️⃣ Mở ứng dụng web
+### 3️⃣ Mở ứng dụng
 
-Mở trình duyệt và truy cập:
-
+Truy cập:
 http://localhost:3000
-💰 Cách hệ thống chuyển tiền hoạt động
-
-Chọn tài khoản gửi
-
-Chọn tài khoản nhận
-
-Nhập số tiền cần chuyển
-
-Nhấn Transfer
-
-Hệ thống sẽ thực hiện:
-
-Bắt đầu database transaction
-
-Trừ tiền từ tài khoản gửi
-
-Cộng tiền vào tài khoản nhận
-
-Commit transaction
-
-Nếu xảy ra lỗi, transaction sẽ được rollback để đảm bảo dữ liệu không bị sai lệch.
