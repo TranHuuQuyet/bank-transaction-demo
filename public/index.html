@@ -1,0 +1,54 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Bank Transaction Demo</title>
+    <link rel="stylesheet" href="style.css" />
+    <link rel="shortcut icon" href="ic.png" type="image/x-icon" />
+  </head>
+
+  <body>
+    <h1>Bank Transfer Demo</h1>
+
+    <div id="accounts"></div>
+
+    <h2>Transfer Money</h2>
+
+    <form id="transferForm">
+      From:
+      <select id="from"></select>
+
+      To:
+      <select id="to"></select>
+
+      Amount:
+      <input type="number" id="amount" min="1" />
+
+      <button type="submit">Transfer</button>
+
+      <button type="button" onclick="simulateError()">
+        Simulate Error (Rollback)
+      </button>
+    </form>
+
+    <p id="message"></p>
+
+    <h2>Transaction History</h2>
+
+    <button onclick="loadTransactions()">Load History</button>
+
+    <table border="1" id="historyTable">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Sender</th>
+          <th>Receiver</th>
+          <th>Amount</th>
+          <th>Time</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+
+    <script src="script.js"></script>
+  </body>
+</html>
