@@ -26,24 +26,7 @@ Container hóa
 Docker
 Docker Compose
 
-📂 Cấu trúc thư mục dự án
-bank-transaction/
-│
-├── public/             # Các file frontend
-│   ├── index.html
-│   ├── style.css
-│   ├── script.js
-│   └── ic.png
-│
-├── server.js           # Server backend
-├── db.sql              # Cấu trúc database
-├── init.sql            # Dữ liệu khởi tạo
-│
-├── Dockerfile
-├── docker-compose.yml
-│
-├── package.json
-└── README.md
+
 ⚙️ Cách chạy dự án
 1️⃣ Clone repository
 git clone https://github.com/yourusername/bank-transfer-demo.git
