@@ -151,3 +151,7 @@ button[type="button"]:hover {
     flex-direction: column;
   }
 }
+.rollback {
+  color: red;
+  font-weight: bold;
+}

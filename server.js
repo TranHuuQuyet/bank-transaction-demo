@@ -96,10 +96,23 @@ app.post("/transfer", async (req, res) => {
     await connection.commit();
 
     res.json({ message: "Transfer success" });
+    // } catch (err) {
+    //   await connection.rollback();
+
+    //   res.status(400).json({
+    //     error: err.message,
+    //   });
+    // }
   } catch (err) {
     await connection.rollback();
 
-    res.status(500).json({
+    const status =
+      err.message === "Not enough money" ||
+      err.message === "Sender account not found"
+        ? 400
+        : 500;
+
+    res.status(status).json({
       error: err.message,
     });
   }

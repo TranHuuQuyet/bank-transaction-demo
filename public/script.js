@@ -18,6 +18,23 @@ async function loadAccounts() {
   });
 }
 
+function showTimeline(steps) {
+  const message = document.getElementById("message");
+
+  message.className = "";
+  message.innerHTML = "";
+
+  steps.forEach((step) => {
+    const line = document.createElement("div");
+    line.innerText = step;
+    message.appendChild(line);
+  });
+}
+
+function delay(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 document
   .getElementById("transferForm")
   .addEventListener("submit", async (e) => {
@@ -26,6 +43,31 @@ document
     const from = document.getElementById("from").value;
     const to = document.getElementById("to").value;
     const amount = document.getElementById("amount").value;
+
+    const message = document.getElementById("message");
+    message.innerHTML = "";
+
+    // timeline demo
+    showTimeline(["BEGIN TRANSACTION"]);
+    await delay(700);
+
+    showTimeline(["BEGIN TRANSACTION", "CHECK BALANCE"]);
+    await delay(700);
+
+    showTimeline([
+      "BEGIN TRANSACTION",
+      "CHECK BALANCE",
+      "UPDATE SENDER BALANCE",
+    ]);
+    await delay(700);
+
+    showTimeline([
+      "BEGIN TRANSACTION",
+      "CHECK BALANCE",
+      "UPDATE SENDER BALANCE",
+      "UPDATE RECEIVER BALANCE",
+    ]);
+    await delay(700);
 
     const res = await fetch("/transfer", {
       method: "POST",
@@ -41,8 +83,27 @@ document
 
     const result = await res.json();
 
-    document.getElementById("message").innerText =
-      result.message || result.error;
+    if (res.ok) {
+      showTimeline([
+        "BEGIN TRANSACTION",
+        "CHECK BALANCE",
+        "UPDATE SENDER BALANCE",
+        "UPDATE RECEIVER BALANCE",
+        "INSERT TRANSACTION LOG",
+        "COMMIT",
+      ]);
+    } else {
+      message.className = "rollback";
+
+      showTimeline([
+        "BEGIN TRANSACTION",
+        "CHECK BALANCE",
+        "ERROR DETECTED",
+        "ROLLBACK",
+      ]);
+    }
+
+    message.innerHTML += `<p>${result.message || result.error}</p>`;
 
     loadAccounts();
     loadTransactions();
@@ -76,6 +137,26 @@ async function simulateError() {
   const to = document.getElementById("to").value;
   const amount = document.getElementById("amount").value;
 
+  const message = document.getElementById("message");
+
+  message.className = "rollback";
+
+  showTimeline(["BEGIN TRANSACTION"]);
+  await delay(700);
+
+  showTimeline(["BEGIN TRANSACTION", "UPDATE SENDER BALANCE"]);
+  await delay(700);
+
+  showTimeline(["BEGIN TRANSACTION", "UPDATE SENDER BALANCE", "SYSTEM CRASH"]);
+  await delay(700);
+
+  showTimeline([
+    "BEGIN TRANSACTION",
+    "UPDATE SENDER BALANCE",
+    "SYSTEM CRASH",
+    "ROLLBACK",
+  ]);
+
   const res = await fetch("/transfer-error", {
     method: "POST",
     headers: {
@@ -90,7 +171,7 @@ async function simulateError() {
 
   const data = await res.json();
 
-  alert(data.message);
+  message.innerHTML += `<p>${data.message}</p>`;
 
   loadAccounts();
 }
