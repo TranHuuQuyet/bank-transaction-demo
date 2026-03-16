@@ -47,7 +47,7 @@ document
     const message = document.getElementById("message");
     message.innerHTML = "";
 
-    // timeline demo
+    // Transaction flow demo
     showTimeline(["BEGIN TRANSACTION"]);
     await delay(700);
 
@@ -140,21 +140,27 @@ async function simulateError() {
   const message = document.getElementById("message");
 
   message.className = "rollback";
+  message.innerHTML = "";
 
+  // simulate transaction failure
   showTimeline(["BEGIN TRANSACTION"]);
   await delay(700);
 
   showTimeline(["BEGIN TRANSACTION", "UPDATE SENDER BALANCE"]);
   await delay(700);
 
-  showTimeline(["BEGIN TRANSACTION", "UPDATE SENDER BALANCE", "SYSTEM CRASH"]);
+  showTimeline([
+    "BEGIN TRANSACTION",
+    "UPDATE SENDER BALANCE",
+    "SYSTEM CRASH DETECTED",
+  ]);
   await delay(700);
 
   showTimeline([
     "BEGIN TRANSACTION",
     "UPDATE SENDER BALANCE",
-    "SYSTEM CRASH",
-    "ROLLBACK",
+    "SYSTEM CRASH DETECTED",
+    "ROLLBACK EXECUTED",
   ]);
 
   const res = await fetch("/transfer-error", {
