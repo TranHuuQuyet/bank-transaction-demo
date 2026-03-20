@@ -106,7 +106,52 @@ app.post("/transfer-slow", async (req, res) => {
 
   connection.release();
 });
-////----
+////----no transaction
+app.post("/transfer-no-tx", async (req, res) => {
+  const { from, to, amount } = req.body;
+  const money = Number(amount);
+
+  try {
+    console.log("🚫 NO TRANSACTION START");
+
+    // 🧠 1. READ balance (không lock)
+    const [sender] = await db.query("SELECT balance FROM accounts WHERE id=?", [
+      from,
+    ]);
+
+    if (sender.length === 0) {
+      throw new Error("Sender not found");
+    }
+
+    console.log("📖 READ BALANCE:", sender[0].balance);
+
+    // ⏳ 2. DELAY ở đây (cực kỳ quan trọng)
+    await new Promise((resolve) => setTimeout(resolve, 5000));
+
+    // ❗ 2 request sẽ đọc cùng 1 balance
+
+    if (sender[0].balance < money) {
+      throw new Error("Not enough money");
+    }
+
+    // 💥 3. UPDATE
+    await db.query("UPDATE accounts SET balance = balance - ? WHERE id=?", [
+      money,
+      from,
+    ]);
+
+    await db.query("UPDATE accounts SET balance = balance + ? WHERE id=?", [
+      money,
+      to,
+    ]);
+
+    console.log("⚠️ NO TX DONE");
+
+    res.json({ message: "Transfer without transaction" });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+});
 // transfer tiền
 app.post("/transfer", async (req, res) => {
   ///333
