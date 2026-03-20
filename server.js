@@ -40,9 +40,78 @@ app.get("/transactions", async (req, res) => {
 
   res.json(rows);
 });
+///-----
 
+// ===================== TRANSFER SLOW (DEMO CONCURRENCY) =====================
+app.post("/transfer-slow", async (req, res) => {
+  const { from, to, amount } = req.body;
+  const money = Number(amount);
+
+  const connection = await db.getConnection();
+
+  try {
+    await connection.beginTransaction();
+
+    console.log(`🟡 BEGIN TX - from ${from}`);
+
+    const [sender] = await connection.query(
+      "SELECT balance FROM accounts WHERE id=? FOR UPDATE",
+      [from],
+    );
+
+    console.log(`🔒 LOCK ACQUIRED - account ${from}`);
+
+    // ⏳ tăng delay để dễ thấy block
+    await new Promise((resolve) => setTimeout(resolve, 8000));
+
+    if (sender.length === 0) {
+      throw new Error("Sender not found");
+    }
+
+    if (sender[0].balance < money) {
+      throw new Error("Not enough money");
+    }
+
+    const [receiver] = await connection.query(
+      "SELECT balance FROM accounts WHERE id=? FOR UPDATE",
+      [to],
+    );
+
+    if (receiver.length === 0) {
+      throw new Error("Receiver not found");
+    }
+
+    await connection.query(
+      "UPDATE accounts SET balance = balance - ? WHERE id=?",
+      [money, from],
+    );
+
+    await connection.query(
+      "UPDATE accounts SET balance = balance + ? WHERE id=?",
+      [money, to],
+    );
+
+    await connection.commit();
+
+    console.log(`✅ COMMIT - from ${from}`);
+
+    res.json({ message: "Slow transfer success" });
+  } catch (err) {
+    await connection.rollback();
+
+    console.log(`❌ ROLLBACK - ${err.message}`);
+
+    res.status(400).json({ error: err.message });
+  }
+
+  connection.release();
+});
+////----
 // transfer tiền
 app.post("/transfer", async (req, res) => {
+  ///333
+
+  ///333
   const { from, to, amount } = req.body;
 
   const money = Number(amount);
@@ -65,9 +134,18 @@ app.post("/transfer", async (req, res) => {
   try {
     await connection.beginTransaction();
 
+    // const [sender] = await connection.query(
+    //   "SELECT balance FROM accounts WHERE id=?",
+    //   [from],
+    // );
     const [sender] = await connection.query(
-      "SELECT balance FROM accounts WHERE id=?",
+      "SELECT balance FROM accounts WHERE id=? FOR UPDATE",
       [from],
+    );
+
+    const [receiver] = await connection.query(
+      "SELECT balance FROM accounts WHERE id=? FOR UPDATE",
+      [to],
     );
 
     if (sender.length === 0) {
