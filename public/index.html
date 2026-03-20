@@ -8,7 +8,20 @@
 
   <body>
     <h1>Bank Transfer Demo</h1>
+    <button type="submit">Transfer (With TX)</button>
 
+    <button type="button" onclick="transferNoTx()">
+      Transfer NO TX (Race Condition)
+    </button>
+
+    <button type="button" onclick="transferSlow()">
+      Transfer SLOW (Lock Demo)
+    </button>
+
+    <button type="button" onclick="simulateError()">
+      Simulate Error (Rollback)
+    </button>
+    <button type="button" onclick="resetData()">🔄 Reset Data</button>
     <div id="accounts"></div>
 
     <h2>Transfer Money</h2>
@@ -25,9 +38,9 @@
 
       <button type="submit">Transfer</button>
 
-      <button type="button" onclick="simulateError()">
+      <!-- <button type="button" onclick="simulateError()">
         Simulate Error (Rollback)
-      </button>
+      </button> -->
     </form>
 
     <!-- //thêm timeline -->

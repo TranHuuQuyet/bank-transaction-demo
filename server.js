@@ -276,7 +276,21 @@ app.post("/transfer-error", async (req, res) => {
 
   connection.release();
 });
+////////////thêm  api reset
+app.post("/reset", async (req, res) => {
+  try {
+    await db.query("UPDATE accounts SET balance = 1000");
 
+    // (optional) xoá lịch sử giao dịch cho sạch demo
+    await db.query("DELETE FROM transactions");
+
+    console.log("🔄 RESET DATA");
+
+    res.json({ message: "Data has been reset to initial state" });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 app.listen(3000, () => {
   console.log("Server running on port 3000");
 });
