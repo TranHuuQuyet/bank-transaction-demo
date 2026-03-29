@@ -40,7 +40,7 @@ app.get("/transactions", async (req, res) => {
 
   res.json(rows);
 });
-///-----
+
 
 // ===================== TRANSFER SLOW (DEMO CONCURRENCY) =====================
 app.post("/transfer-slow", async (req, res) => {
@@ -231,7 +231,7 @@ app.post("/transfer", async (req, res) => {
 
     const status =
       err.message === "Not enough money" ||
-      err.message === "Sender account not found"
+        err.message === "Sender account not found"
         ? 400
         : 500;
 
@@ -243,54 +243,39 @@ app.post("/transfer", async (req, res) => {
   connection.release();
 });
 
-// simulate error để demo rollback
-app.post("/transfer-error", async (req, res) => {
-  const { from, to, amount } = req.body;
+//add new account
+app.post("/create-account", async (req, res) => {
+  const { id, name, balance } = req.body;
+  if (id !== undefined && id !== null && id !== "") {
+    return res.status(400).json({ error: "ID is auto-generated and cannot be provided" });
+  }
+
+  if (!name || !name.trim()) return res.status(400).json({ error: "Account name required" });
+
+  const initialBalance = Number(balance);
+  if (!Number.isFinite(initialBalance) || initialBalance < 0) {
+    return res.status(400).json({ error: "Balance must be non-negative number" });
+  }
 
   const connection = await db.getConnection();
-
   try {
     await connection.beginTransaction();
 
     await connection.query(
-      "UPDATE accounts SET balance = balance - ? WHERE id=?",
-      [amount, from],
-    );
-
-    // giả lập lỗi hệ thống
-    throw new Error("System crash");
-
-    await connection.query(
-      "UPDATE accounts SET balance = balance + ? WHERE id=?",
-      [amount, to],
+      "INSERT INTO accounts (name, balance) VALUES (?, ?)",
+      [name.trim(), initialBalance],
     );
 
     await connection.commit();
+    res.json({ message: `Account "${name.trim()}" created.` });
   } catch (err) {
     await connection.rollback();
-
-    res.json({
-      message: "Transaction failed → rollback executed",
-    });
-  }
-
-  connection.release();
-});
-////////////thêm  api reset
-app.post("/reset", async (req, res) => {
-  try {
-    await db.query("UPDATE accounts SET balance = 1000");
-
-    // (optional) xoá lịch sử giao dịch cho sạch demo
-    await db.query("DELETE FROM transactions");
-
-    console.log("🔄 RESET DATA");
-
-    res.json({ message: "Data has been reset to initial state" });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(400).json({ error: err.message });
+  } finally {
+    connection.release();
   }
 });
+
 app.listen(3000, () => {
   console.log("Server running on port 3000");
 });
