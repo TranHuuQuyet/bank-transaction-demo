@@ -1,63 +1,145 @@
-# 🏦 Bank Transfer Demo
+# 🏦 Bank Transfer Demo (ACID & Transaction)
 
-Một ứng dụng web đơn giản mô phỏng **hệ thống chuyển tiền giữa các tài khoản ngân hàng**.
+Một ứng dụng web mô phỏng **hệ thống chuyển tiền giữa các tài khoản ngân hàng**.
 
-Dự án được xây dựng nhằm mục đích **minh họa cách hoạt động của Database Transaction và ACID trong DBMS**.
+Dự án được xây dựng nhằm mục đích **trình bày và minh họa cách hoạt động của Database Transaction và các tính chất ACID trong DBMS**.
 
 ---
 
-## 📌 Chức năng
+# 🎯 Mục tiêu học tập
 
+- Hiểu cách hoạt động của **Transaction**
+- Minh họa 4 tính chất **ACID**:
+  - **Atomicity**
+  - **Consistency**
+  - **Isolation**
+  - **Durability**
+- Quan sát các lỗi khi **không sử dụng transaction**
+- Trải nghiệm các vấn đề:
+  - Lost Update
+  - Dirty Read (mô phỏng)
+  - Non-repeatable Read
+  - Race Condition
+
+---
+
+# 📌 Chức năng
+
+## ✔️ Cơ bản
 - Hiển thị danh sách tài khoản
-- Chọn tài khoản gửi tiền
-- Chọn tài khoản nhận tiền
-- Nhập số tiền cần chuyển
-- Thực hiện giao dịch chuyển tiền
-- Cập nhật số dư trong database
+- Thực hiện chuyển tiền giữa 2 tài khoản
+- Lưu lịch sử giao dịch
+
+## 🧪 Demo nâng cao
+
+### 🔹 1. Transfer có Transaction (`/transfer`)
+- Sử dụng:
+  - `BEGIN`
+  - `COMMIT`
+  - `ROLLBACK`
+- Dùng `SELECT ... FOR UPDATE` để lock dữ liệu
+- Có thể:
+  - simulate delay → demo blocking
+  - simulate crash → demo rollback
+
+### 🔹 2. Transfer không Transaction (`/transfer-no-tx`)
+- Không dùng transaction
+- Cố tình tạo lỗi:
+  - ❌ Lost Update
+  - ❌ Race Condition
+  - ❌ Stale Data
+  - ❌ Partial Update (mất tiền)
+
+### 🔹 3. Concurrency Demo
+- 2 request chạy cùng lúc
+- Quan sát:
+  - blocking
+  - inconsistency
 
 ---
 
-## 🛠 Công nghệ sử dụng
+# 🛠 Công nghệ sử dụng
 
-### Frontend
+## Frontend
 - HTML
 - CSS
 - JavaScript
 
-### Backend
+## Backend
 - Node.js
 - Express.js
 
-### Database
+## Database
 - MySQL
 
-### Container
+## Container
 - Docker
 - Docker Compose
 
+## Test Tool
+- Postman
 ---
 
 ## 📂 Cấu trúc dự án
 ![alt text](imageREADME/Tree.png)
 
-## ⚙️ Cách chạy project
+---
 
-### 1️⃣ Clone project
+# ⚙️ Cách chạy project
+
+## 1️⃣ Clone project
+
+```bash
 git clone https://github.com/TranHuuQuyet/bank-transaction-demo
+cd bank-transaction-demo
 
-cd bank-transfer-demo
+# 🧪 Testing bằng Postman
 
-### 2️⃣ Chạy Docker
-docker-compose up --build
-
-Hệ thống sẽ khởi động:
-
-- Node.js server
-- MySQL database
+Phần này hướng dẫn cách test các chức năng của hệ thống bằng Postman để minh họa **Transaction và ACID**.
 
 ---
 
-### 3️⃣ Mở ứng dụng
+## ⚙️ Cấu hình chung
 
-Truy cập:
-http://localhost:3000
+- Method: `POST`
+- URL: `http://localhost:3000`
+- Body: `raw` → `JSON`
+
+---
+
+## 🔹 Test 1 — Transfer bình thường (Success)
+POST /transfer
+{
+  "from": 1,
+  "to": 2,
+  "amount": 100
+}
+## 🔹 Test 2 — Rollback (Atomicity)
+POST /transfer
+{
+  "from": 1,
+  "to": 2,
+  "amount": 100,
+  "simulateCrash": true
+}
+- Lỗi xảy ra giữa transaction
+- Database không thay đổi (rollback)
+
+## 🔹 Test 4 — No Transaction Bug
+POST /transfer-no-tx
+{
+  "from": 1,
+  "to": 2,
+  "amount": 800
+}
+- Tương tự có thể test với những lỗi vi phạm ACID.
+# Co thể sẽ thấy 
+- âm tiền
+- mất tiền
+- dữ liệu sai
+### Endpoint
+
+
+
+
+
