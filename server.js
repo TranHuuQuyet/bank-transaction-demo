@@ -42,69 +42,111 @@ app.get("/transactions", async (req, res) => {
 });
 
 
-// ===================== TRANSFER SLOW (DEMO CONCURRENCY) =====================
-app.post("/transfer-slow", async (req, res) => {
-  const { from, to, amount } = req.body;
+// TRANSFER SLOW (DEMO CONCURRENCY)
+app.post("/transfer", async (req, res) => {
+  const { from, to, amount, simulateDelay } = req.body;
   const money = Number(amount);
+
+  if (!Number.isFinite(money) || money <= 0) {
+    return res.status(400).json({ error: "Invalid amount" });
+  }
+
+  if (from === to) {
+    return res.status(400).json({ error: "Same account" });
+  }
 
   const connection = await db.getConnection();
 
   try {
+    await connection.query(
+      "SET TRANSACTION ISOLATION LEVEL READ COMMITTED"
+    );
     await connection.beginTransaction();
 
-    console.log(`🟡 BEGIN TX - from ${from}`);
+    console.log(`🟡 BEGIN TX from ${from} → ${to}`);
 
-    const [sender] = await connection.query(
+    // 🔒 lock theo thứ tự để tránh deadlock
+    const [first, second] = from < to ? [from, to] : [to, from];
+
+    const [rows1] = await connection.query(
       "SELECT balance FROM accounts WHERE id=? FOR UPDATE",
-      [from],
+      [first]
     );
 
-    console.log(`🔒 LOCK ACQUIRED - account ${from}`);
+    const [rows2] = await connection.query(
+      "SELECT balance FROM accounts WHERE id=? FOR UPDATE",
+      [second]
+    );
 
-    // ⏳ tăng delay để dễ thấy block
-    await new Promise((resolve) => setTimeout(resolve, 8000));
+    const sender = from === first ? rows1[0] : rows2[0];
+    const receiver = to === second ? rows2[0] : rows1[0];
 
-    if (sender.length === 0) {
-      throw new Error("Sender not found");
+    if (!sender) throw new Error("Sender not found");
+    if (!receiver) throw new Error("Receiver not found");
+
+    console.log(`🔒 LOCK ACQUIRED for ${first}, ${second}`);
+
+    //  DEMO MODE (giữ lock)
+    if (simulateDelay) {
+      console.log("⏳ Simulating delay...");
+      await new Promise((resolve) => setTimeout(resolve, 8000));
     }
 
-    if (sender[0].balance < money) {
+    if (sender.balance < money) {
       throw new Error("Not enough money");
     }
 
-    const [receiver] = await connection.query(
-      "SELECT balance FROM accounts WHERE id=? FOR UPDATE",
-      [to],
-    );
-
-    if (receiver.length === 0) {
-      throw new Error("Receiver not found");
-    }
-
+    //  update
+    const { simulateCrash } = req.body;
     await connection.query(
       "UPDATE accounts SET balance = balance - ? WHERE id=?",
-      [money, from],
+      [money, from]
     );
 
+    // thêm lỗi để demo rollback
+    if (simulateCrash) {
+      console.log("Simulating Crash...");
+      throw new Error("Crash after debit");
+    }
     await connection.query(
       "UPDATE accounts SET balance = balance + ? WHERE id=?",
-      [money, to],
+      [money, to]
+    );
+
+
+    // 🧾 log transaction
+    await connection.query(
+      "INSERT INTO transactions (from_account,to_account,amount) VALUES (?,?,?)",
+      [from, to, money]
     );
 
     await connection.commit();
 
-    console.log(`✅ COMMIT - from ${from}`);
+    console.log(`✅ COMMIT ${from} → ${to}`);
 
-    res.json({ message: "Slow transfer success" });
+    res.json({
+      message: simulateDelay
+        ? "Transfer success (with delay demo)"
+        : "Transfer success",
+    });
   } catch (err) {
     await connection.rollback();
 
-    console.log(`❌ ROLLBACK - ${err.message}`);
+    console.log("❌ ROLLBACK:", err.message);
 
-    res.status(400).json({ error: err.message });
+    if (
+      err.code === "ER_LOCK_DEADLOCK" ||
+      err.code === "ER_LOCK_WAIT_TIMEOUT"
+    ) {
+      return res.status(409).json({
+        error: "Transaction conflict, please retry",
+      });
+    }
+
+    res.status(500).json({ error: err.message });
+  } finally {
+    connection.release();
   }
-
-  connection.release();
 });
 ////----no transaction
 app.post("/transfer-no-tx", async (req, res) => {
@@ -114,133 +156,58 @@ app.post("/transfer-no-tx", async (req, res) => {
   try {
     console.log("🚫 NO TRANSACTION START");
 
-    // 🧠 1. READ balance (không lock)
-    const [sender] = await db.query("SELECT balance FROM accounts WHERE id=?", [
-      from,
-    ]);
+    // 🧠 READ (no lock)
+    const [sender] = await db.query(
+      "SELECT balance FROM accounts_no_tx WHERE id=?",
+      [from]
+    );
 
     if (sender.length === 0) {
       throw new Error("Sender not found");
     }
 
+    const [receiver] = await db.query(
+      "SELECT balance FROM accounts_no_tx WHERE id=?",
+      [to]
+    );
+
+    // if (receiver.length === 0) {
+    //   throw new Error("Receiver not found");
+    // }
+
     console.log("📖 READ BALANCE:", sender[0].balance);
 
-    // ⏳ 2. DELAY ở đây (cực kỳ quan trọng)
-    await new Promise((resolve) => setTimeout(resolve, 5000));
+    // ⏳ delay để tạo race condition
+    await new Promise((resolve) => setTimeout(resolve, 8000));
 
-    // ❗ 2 request sẽ đọc cùng 1 balance
+    // if (sender[0].balance < money) {
+    //   throw new Error("Not enough money");
+    // }
 
-    if (sender[0].balance < money) {
-      throw new Error("Not enough money");
-    }
+    // 💥 stale update
+    const newSenderBalance = sender[0].balance - money;
 
-    // 💥 3. UPDATE
-    await db.query("UPDATE accounts SET balance = balance - ? WHERE id=?", [
-      money,
-      from,
-    ]);
+    console.log("⚠️ BEFORE:", sender[0].balance);
+    console.log("⚠️ AFTER:", newSenderBalance);
 
-    await db.query("UPDATE accounts SET balance = balance + ? WHERE id=?", [
-      money,
-      to,
-    ]);
+    await db.query(
+      "UPDATE accounts_no_tx SET balance = ? WHERE id=?",
+      [newSenderBalance, from]
+    );
+    // thêm lỗi để demo rollback
+    throw new Error("Crash after debit");
+
+    await db.query(
+      "UPDATE accounts_no_tx SET balance = balance + ? WHERE id=?",
+      [money, to]
+    );
 
     console.log("⚠️ NO TX DONE");
 
-    res.json({ message: "Transfer without transaction" });
+    res.json({ message: "Transfer without transaction (bug demo)" });
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
-});
-// transfer tiền
-app.post("/transfer", async (req, res) => {
-  ///333
-
-  ///333
-  const { from, to, amount } = req.body;
-
-  const money = Number(amount);
-
-  // kiểm tra dữ liệu
-  if (!Number.isFinite(money) || money <= 0) {
-    return res.status(400).json({
-      error: "Amount must be a positive number",
-    });
-  }
-
-  if (from === to) {
-    return res.status(400).json({
-      error: "Cannot transfer to the same account",
-    });
-  }
-
-  const connection = await db.getConnection();
-
-  try {
-    await connection.beginTransaction();
-
-    // const [sender] = await connection.query(
-    //   "SELECT balance FROM accounts WHERE id=?",
-    //   [from],
-    // );
-    const [sender] = await connection.query(
-      "SELECT balance FROM accounts WHERE id=? FOR UPDATE",
-      [from],
-    );
-
-    const [receiver] = await connection.query(
-      "SELECT balance FROM accounts WHERE id=? FOR UPDATE",
-      [to],
-    );
-
-    if (sender.length === 0) {
-      throw new Error("Sender account not found");
-    }
-
-    if (sender[0].balance < money) {
-      throw new Error("Not enough money");
-    }
-
-    await connection.query(
-      "UPDATE accounts SET balance = balance - ? WHERE id=?",
-      [money, from],
-    );
-
-    await connection.query(
-      "UPDATE accounts SET balance = balance + ? WHERE id=?",
-      [money, to],
-    );
-
-    await connection.query(
-      "INSERT INTO transactions (from_account,to_account,amount) VALUES (?,?,?)",
-      [from, to, money],
-    );
-
-    await connection.commit();
-
-    res.json({ message: "Transfer success" });
-    // } catch (err) {
-    //   await connection.rollback();
-
-    //   res.status(400).json({
-    //     error: err.message,
-    //   });
-    // }
-  } catch (err) {
-    await connection.rollback();
-
-    const status =
-      err.message === "Not enough money" ||
-        err.message === "Sender account not found"
-        ? 400
-        : 500;
-
-    res.status(status).json({
-      error: err.message,
-    });
-  }
-
-  connection.release();
 });
 
 //add new account
@@ -262,7 +229,7 @@ app.post("/create-account", async (req, res) => {
     await connection.beginTransaction();
 
     await connection.query(
-      "INSERT INTO accounts (name, balance) VALUES (?, ?)",
+      "CALL add_account(?, ?)",
       [name.trim(), initialBalance],
     );
 
