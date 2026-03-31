@@ -98,7 +98,7 @@ cd bank-transaction-demo
 Phần này hướng dẫn cách test các chức năng của hệ thống bằng Postman để minh họa **Transaction và ACID**.
 
 ---
-
+```bash
 ## ⚙️ Cấu hình chung
 
 - Method: `POST`
