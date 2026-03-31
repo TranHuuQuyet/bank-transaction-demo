@@ -89,7 +89,7 @@ Dự án được xây dựng nhằm mục đích **trình bày và minh họa c
 
 ## 1️⃣ Clone project
 
-```bash
+
 git clone https://github.com/TranHuuQuyet/bank-transaction-demo
 cd bank-transaction-demo
 
