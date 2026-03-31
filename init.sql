@@ -3,7 +3,12 @@ USE bank_demo;
 CREATE TABLE accounts (
   id INT AUTO_INCREMENT PRIMARY KEY,
   name VARCHAR(50),
-  balance DECIMAL(10,2) CHECK (balance >= 0)
+  balance DECIMAL(10,2) check (balance >= 0)
+);
+CREATE TABLE accounts_no_tx (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(50),
+  balance DECIMAL(10,2) 
 );
 
 -- Insert initial data into accounts table
@@ -19,7 +24,7 @@ CREATE TABLE transactions (
   to_account INT,
   amount INT CHECK (amount > 0),
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  message VARCHAR(255),
+  -- message VARCHAR(255),
 
   CONSTRAINT fk_from_account
     FOREIGN KEY (from_account)
@@ -33,31 +38,74 @@ CREATE TABLE transactions (
     ON DELETE CASCADE
     ON UPDATE CASCADE
 );
+-- Create a table to log account creation
+CREATE TABLE audit_logs (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  action VARCHAR(20),
+  table_name VARCHAR(50),
+  record_id INT,
+  old_data JSON,
+  new_data JSON,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 DELIMITER $$
 -- Create a stored procedure to add a new account
 CREATE PROCEDURE add_account (
-    IN P_ID INT,
     IN p_name VARCHAR(100),
     IN p_initial_balance DECIMAL(12,2)
 )
 BEGIN
-    INSERT INTO accounts (id, name, balance)
-    VALUES (P_ID, p_name, p_initial_balance);
+    INSERT INTO accounts (name, balance)
+    VALUES (p_name, p_initial_balance);
 END$$
 DELIMITER ;
 
 DELIMITER $$
-
 -- Create a trigger to log account creation
-DROP TRIGGER IF EXISTS trg_log_account_creation;
-CREATE TRIGGER trg_log_account_creation
+CREATE TRIGGER trg_account_insert
 AFTER INSERT ON accounts
 FOR EACH ROW
 BEGIN
-    INSERT INTO transactions (message)
-    VALUES (CONCAT('Account created: ', NEW.name));
+  INSERT INTO audit_logs (action, table_name, record_id, new_data)
+  VALUES (
+    'INSERT',
+    'accounts',
+    NEW.id,
+    JSON_OBJECT(
+      'name', NEW.name,
+      'balance', NEW.balance
+    )
+  );
 END$$
 
 DELIMITER ;
 
+DELIMITER $$
+-- Create a trigger to log account updates
+CREATE TRIGGER trg_account_update
+AFTER UPDATE ON accounts
+FOR EACH ROW
+BEGIN
+  INSERT INTO audit_logs (
+    action,
+    table_name,
+    record_id,
+    old_data,
+    new_data
+  )
+  VALUES (
+    'UPDATE',
+    'accounts',
+    NEW.id,
+    JSON_OBJECT(
+      'balance', OLD.balance
+    ),
+    JSON_OBJECT(
+      'balance', NEW.balance
+    )
+  );
+END$$
+
+DELIMITER ;
 

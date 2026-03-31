@@ -36,77 +36,85 @@ function delay(ms) {
 
 document
   .getElementById("transferForm")
-  .addEventListener("submit", async (e) => {
+  .addEventListener("submit", transfer);
+
+async function transfer(e) {
+  if (e && e.preventDefault) {
     e.preventDefault();
+  }
 
-    const from = document.getElementById("from").value;
-    const to = document.getElementById("to").value;
-    const amount = document.getElementById("amount").value;
+  const from = document.getElementById("from").value;
+  const to = document.getElementById("to").value;
+  const amount = document.getElementById("amount").value;
 
-    const message = document.getElementById("message");
-    message.innerHTML = "";
+  const message = document.getElementById("message");
+  message.innerHTML = "";
 
-    // Transaction flow demo
-    showTimeline(["BEGIN TRANSACTION"]);
-    await delay(700);
+  // Transaction flow demo
+  showTimeline(["BEGIN TRANSACTION"]);
+  await delay(700);
 
-    showTimeline(["BEGIN TRANSACTION", "CHECK BALANCE"]);
-    await delay(700);
+  showTimeline(["BEGIN TRANSACTION", "CHECK BALANCE"]);
+  await delay(700);
 
-    showTimeline([
-      "BEGIN TRANSACTION",
-      "CHECK BALANCE",
-      "UPDATE SENDER BALANCE",
-    ]);
-    await delay(700);
+  showTimeline([
+    "BEGIN TRANSACTION",
+    "CHECK BALANCE",
+    "UPDATE SENDER BALANCE",
+  ]);
+  await delay(700);
 
+  showTimeline([
+    "BEGIN TRANSACTION",
+    "CHECK BALANCE",
+    "UPDATE SENDER BALANCE",
+    "UPDATE RECEIVER BALANCE",
+  ]);
+  await delay(700);
+
+  const res = await fetch("/transfer", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      from: Number(from),
+      to: Number(to),
+      amount: Number(amount),
+    }),
+  });
+
+  const result = await res.json();
+
+  if (res.ok) {
     showTimeline([
       "BEGIN TRANSACTION",
       "CHECK BALANCE",
       "UPDATE SENDER BALANCE",
       "UPDATE RECEIVER BALANCE",
+      "INSERT TRANSACTION LOG",
+      "COMMIT",
     ]);
-    await delay(700);
+  } else {
+    message.className = "rollback";
 
-    const res = await fetch("/transfer", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        from: Number(from),
-        to: Number(to),
-        amount: Number(amount),
-      }),
-    });
+    showTimeline([
+      "BEGIN TRANSACTION",
+      "CHECK BALANCE",
+      "ERROR DETECTED",
+      "ROLLBACK",
+    ]);
+  }
 
-    const result = await res.json();
+  message.innerHTML += `<p>${result.message || result.error}</p>`;
 
-    if (res.ok) {
-      showTimeline([
-        "BEGIN TRANSACTION",
-        "CHECK BALANCE",
-        "UPDATE SENDER BALANCE",
-        "UPDATE RECEIVER BALANCE",
-        "INSERT TRANSACTION LOG",
-        "COMMIT",
-      ]);
-    } else {
-      message.className = "rollback";
+  loadAccounts();
+  loadTransactions();
+}
 
-      showTimeline([
-        "BEGIN TRANSACTION",
-        "CHECK BALANCE",
-        "ERROR DETECTED",
-        "ROLLBACK",
-      ]);
-    }
-
-    message.innerHTML += `<p>${result.message || result.error}</p>`;
-
-    loadAccounts();
-    loadTransactions();
-  });
+function transferWithTx() {
+  return transfer();
+}
 
 async function loadTransactions() {
   const res = await fetch("/transactions");
@@ -219,41 +227,7 @@ async function transferNoTx() {
 
 ////////////////////////thêm ui cho transfer slow
 async function transferSlow() {
-  const from = document.getElementById("from").value;
-  const to = document.getElementById("to").value;
-  const amount = document.getElementById("amount").value;
-
-  const message = document.getElementById("message");
-  message.className = "";
-  message.innerHTML = "";
-
-  showTimeline(["BEGIN TRANSACTION", "LOCK (FOR UPDATE)", "WAITING..."]);
-
-  const res = await fetch("/transfer-slow", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      from: Number(from),
-      to: Number(to),
-      amount: Number(amount),
-    }),
-  });
-
-  const result = await res.json();
-
-  if (res.ok) {
-    showTimeline(["BEGIN TRANSACTION", "LOCK", "WAIT", "UPDATE", "COMMIT"]);
-  } else {
-    message.className = "rollback";
-    showTimeline(["BEGIN TRANSACTION", "LOCK", "ERROR", "ROLLBACK"]);
-  }
-
-  message.innerHTML += `<p>${result.message || result.error}</p>`;
-
-  loadAccounts();
-  loadTransactions();
+  return transfer();
 }
 ////////////////////////////////// thêm reset data
 async function resetData() {
